@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Insert title here</title>
+
+<!--Import Google Icon Font-->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+	rel="stylesheet">
+
+<!--Import materialize.css-->
+<link type="text/css" rel="stylesheet"
+	href="/materialize/css/materialize.min.css" media="screen,projection" />
+
+<style type="text/css">
+#btnSalvar, #btnPesquisar {
+	color: white !important;
+}
+
+.gerencia-telefone {
+	display: flex;
+    align-items: baseline;
+    background: #f7fff8;
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin-top: 10px;
+    margin-bottom: 60px;
+}
+
+.gerencia-telefone .id {
+	font-size: 2em;
+    margin: 0;
+}
+
+.gerencia-telefone .nome {
+	font-size: 3em;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.gerencia-telefone .idade {
+	font-size: 1.5em;
+    color: #ff0000;
+    font-weight: bold;
+    margin: 0;
+}
+
+.cadastro-telefone {
+	padding-left: 30px 
+}
+
+.msg-erro {	
+    background: #f76464;
+    color: #fff;
+}
+
+.msg-erro > div {	
+    padding: 5px;
+    margin-left: 10px;
+}
+
+table.striped>tbody>tr:nth-child(odd){
+	background-color: rgb(222 239 230 / 50%);
+}
+
+</style>
+
+</head>
+<body>
+
+	<h3 style="text-align: center;">Spring Boot + thymeleaf + Material Design Lite</h3>
+	<h5 style="text-align: center;">Cadastro Telefones</h5>
+
+	<div class="container">
+		
+		<a href="/cadastropessoa" class="waves-effect waves-light btn">Voltar</a>
+	
+		<div class="gerencia-telefone">
+			<div th:each="p : ${pessoaobj}" style="flex:1; border-right: 1px solid #ccc;">
+			
+				<div class="row">
+					<p class="id"><span th:text="${p.id}"></span></p>
+					<p class="nome"><span th:text="${p.nome}"></span> <span th:text="${p.sobrenome}"></span></p>
+					<p class="idade"><span th:text="${p.idade}"></span> Anos</p>
+				</div>
+			
+			</div>		
+				
+			
+			<div class="row cadastro-telefone">
+				<h5>Cadastrar Telefone</h5>
+				<form th:action="@{/addfonepessoa/{idpessoa}(idpessoa=${pessoaobj.id})}"
+				 method="POST" onsubmit="return validarCampos() ? true : false;" class="col-12">
+					<div class="row">
+						<div class="input-field col s6">
+							<label for="numero" class="active">Número</label>
+							<input class="validate" name="numero" id="numero" placeholder="Digite o número do telefone" />
+						</div>
+						
+						<div class="input-field col s6">
+							<label for="tipo" class="active">Tipo</label>
+							<input class="validate" name="tipo" id="tipo" placeholder="Digite o tipo do telefone" />
+						</div>
+						
+						<input type="submit" class="waves-effect waves-light btn" value="Adicionar" />
+					</div>
+				</form>
+				
+				<div class="col-12 msg-erro">
+					<div th:each="m : ${msg}">
+						<span th:text="${m}"></span>
+					</div>
+				</div>
+			</div>
+		
+		</div>
+		
+		
+		<h3 style="text-align: center;">Lista de Telefones</h3>
+		<table class="striped">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Número</th>
+					<th>Tipo</th>
+					<th>Opções</th>
+				</tr>				
+			</thead>
+			<tbody>
+				<tr th:each="fone : ${telefones}">
+					<td th:text="${fone.id}"></td>
+					<td th:text="${fone.numero}"></td>
+					<td th:text="${fone.tipo}"></td>
+					<td>
+						<a th:href="@{/removertelefone/{idtelefone}(idtelefone=${fone.id})}" class="waves-effect waves-light btn red">Remover</a>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		
+	</div>
+
+	
+	
+
+	<script type="text/javascript" src="/materialize/js/materialize.min.js"></script>
+	<script type="text/javascript">
+		
+		function validarCampos() {
+			
+			var msg = "";
+		    var valid = true;
+		    
+			numero = document.getElementById('numero').value;
+			tipo = document.getElementById('tipo').value;
+			
+			if(numero === ''){
+				msg += '* Número deve ser informado\n';
+				valid = false;
+			}
+			
+			if(tipo === ''){				
+				msg += '* Tipo deve ser informado';
+				valid = false;
+			}
+			
+			
+			if(valid){
+				return true;
+			} else {
+				alert(msg);
+				return false;
+			} 
+		}
+	</script>
+</body>
+</html>
