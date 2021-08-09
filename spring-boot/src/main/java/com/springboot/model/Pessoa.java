@@ -8,6 +8,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
@@ -33,10 +34,63 @@ public class Pessoa implements Serializable {
 	@Min(value = 18, message = "Idade deve ser maior que 18 anos")
 	private int idade;
 	
+	@ManyToOne
+	private Profissao profissao;
+	
+	private String sexo;
+	private String cep;
+	private String rua;
+	private String bairro;
+	private String cidade;
+	private String uf;
+	
 	@OneToMany(mappedBy = "pessoa", orphanRemoval = true, cascade = CascadeType.ALL)
 	private List<Telefone> telefones;
 	
 	
+	
+	public Profissao getProfissao() {
+		return profissao;
+	}
+	public void setProfissao(Profissao profissao) {
+		this.profissao = profissao;
+	}
+	public void setSexo(String sexo) {
+		this.sexo = sexo;
+	}
+	public String getSexo() {
+		return sexo;
+	}
+	public void setRua(String rua) {
+		this.rua = rua;
+	}
+	public String getRua() {
+		return rua;
+	}
+	public String getCep() {
+		return cep;
+	}
+	public void setCep(String cep) {
+		this.cep = cep;
+	}
+	public String getBairro() {
+		return bairro;
+	}
+	public void setBairro(String bairro) {
+		this.bairro = bairro;
+	}
+	public String getCidade() {
+		return cidade;
+	}
+	public void setCidade(String cidade) {
+		this.cidade = cidade;
+	}
+	public String getUf() {
+		return uf;
+	}
+	public void setUf(String uf) {
+		this.uf = uf;
+	}
 	public void setTelefones(List<Telefone> telefones) {
 		this.telefones = telefones;
 	}

@@ -12,12 +12,12 @@
 	rel="stylesheet">
 
 <!--Import materialize.css-->
-<link type="text/css" rel="stylesheet"
-	href="/materialize/css/materialize.min.css" media="screen,projection" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 
 <style type="text/css">
 #btnSalvar, #btnPesquisar {
 	color: white !important;
+	cursor: pointer;
 }
 
 .pesquisa {
@@ -55,6 +55,7 @@ table.striped>tbody>tr:nth-child(odd){
 
 	<h3 style="text-align: center;">Spring Boot + thymeleaf + Material Design Lite</h3>
 	<h5 style="text-align: center;">Cadastro Pessoa</h5>
+	<a href="/logout">Sair</a>
 
 	<div class="container">
 		<div class="row container-cadastro">
@@ -79,18 +80,67 @@ table.striped>tbody>tr:nth-child(odd){
 					</div>
 				</div>
 				 
-				<div class="row" sec:authorize="hasRole('ROLE_TECNICO')">
+				<div class="row">
 					<div class="input-fiel col s2">
 						<label for="idade" class="active">Idade</label> 
 						<input type="number" name="idade" id="idade" th:field="*{idade}" /><br />	
 					</div>
+					<div class="input-fiel col s2">
+						<label for="sexo" class="active">Sexo</label> 
+						<select class="browser-default" th:field="*{sexo}" id="sexo" name="sexo">
+							<option value="" disabled selected th:text="--[Selecione]--" />
+							<option value="M" th:text="Masculino"/>
+							<option value="F" th:text="Feminino">
+						</select>	
+					</div>
+					<div class="input-fiel col s2">
+						<label for="profissao" class="active">Profissões</label> 
+						<select class="browser-default" th:field="*{profissao}" id="profissao" name="profissao">
+							<option th:each="p : ${profissoes}" th:value="${p.id}" th:text="${p.nome}">
+						</select>	
+					</div>
 				</div>
 				 
+							
+				 <div class="row">
+					<div class="input-fiel col s4">
+						<label for="cep" class="active">CEP</label> 
+						<input type="text" name="cep" id="cep" th:field="*{cep}" placeholder="CEP sem caracteres: 0000000" /><br />	
+					</div>
+				</div>
+				
+				 <div class="row">
+					<div class="input-fiel col s4">
+						<label for="rua" class="active">Rua</label> 
+						<input type="text" name="rua" id="rua" th:field="*{rua}" /><br />	
+					</div>
+				</div>
+				
+				<div class="row">
+					<div class="input-fiel col s4">
+						<label for="bairro" class="active">Bairro</label> 
+						<input type="text" name="bairro" id="bairro" th:field="*{bairro}" /><br />	
+					</div>
+				</div>
+				
+				<div class="row">
+					<div class="input-fiel col s4">
+						<label for="cidade" class="active">Cidade</label> 
+						<input type="text" name="cidade" id="cidade" th:field="*{cidade}" /><br />	
+					</div>
+				</div>
+				
+				<div class="row">
+					<div class="input-fiel col s4">
+						<label for="uf" class="active">UF</label> 
+						<input type="text" name="uf" id="uf" th:field="*{uf}" /><br />	
+					</div>
+				</div>
 				 
 				<div class="row">
-					<div class="input-fiel col s6">
+					<div class="input-fiel col s6" >
 						<button class="waves-effect waves-light btn gray" onclick="document.getElementById('formPessoa').reset();">Novo</button>
-						<input type="submit" id="btnSalvar" class="waves-effect waves-light btn blue" value="Salvar" />						
+						<input type="submit" id="btnSalvar" class="waves-effect waves-light btn blue" value="Salvar" sec:authorize="hasRole('ROLE_TECNICO')" />						
 					</div>
 				</div>			
 	
@@ -107,16 +157,30 @@ table.striped>tbody>tr:nth-child(odd){
 	
 
 		<div class="pesquisa">
-			<form action="pesquisarpessoa" method="POST" style="margin-top: 30px;">
-			
-				<label>Pesquisa por nome: </label>
-				<input name="nomepesquisa" placeholder="Digite o nome da pessoa" />
-				<input type="submit" id="btnPesquisar" class="waves-effect waves-light btn blue" value="Buscar">
+			<form action="pesquisarpessoa" id="frmPesquisaPessoa" method="POST" class="col s12" style="margin-top: 30px;">
+				
+				<div class="row">
+					<div class="input-fiel col s6">
+						<label>Pesquisa por nome: </label>
+						<input name="nomepesquisa" placeholder="Digite o nome da pessoa" />
+					</div>
+					<div class="input-fiel col s6 " style="margin-bottom: 20px;">
+						<label for="sexoPesquisa" class="active">Sexo</label> 
+						<select class="browser-default" id="sexoPesquisa" name="sexoPesquisa">
+							<option value="" selected th:text="--[Todos]--" />
+							<option value="M" th:text="Masculino"/>
+							<option value="F" th:text="Feminino">
+						</select>	
+					</div>
+					<input type="submit" id="btnPesquisar" onclick="document.getElementById('frmPesquisaPessoa').method = 'POST'" class="waves-effect waves-light btn blue" value="Buscar">
+					<a href="/listarpessoas" onclick="document.getElementById('frmPesquisaPessoa').method = 'POST'" class="waves-effect waves-light btn">Listar Pessoas</a>
+					<input type="submit" id="btnPesquisar" onclick="document.getElementById('frmPesquisaPessoa').method = 'GET'" class="waves-effect waves-light btn blue" value="PDF">
+				</div>
 				
 			</form>
 		</div>
 		
-		<a href="/listarpessoas" >Listar Pessoas</a>
+		
 		
 		<table class="striped" style="margin-top: 30px;">
 			<thead>
@@ -142,6 +206,72 @@ table.striped>tbody>tr:nth-child(odd){
 
 	</div>
 
-	<script type="text/javascript" src="/materialize/js/materialize.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+	<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+  crossorigin="anonymous"></script>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			
+			function limpaFormularioCep(){
+				$("#rua").val("");
+				$("#bairro").val("");
+				$("#cidade").val("");
+				$("#uf").val("");
+			}
+			
+			
+			
+			//BLUR - campo cep perde o foco
+			$("#cep").blur(function(){
+				
+				//Nova variável cep somente com digitos
+				var cep = $(this).val().replace(/\D/g, '');
+				
+				if(cep != ""){
+					
+					//Expressão regular para validar cep
+					var validaCep = /^[0-9]{8}$/;
+					
+					//Valida o formato do CEP
+					if(validaCep.test(cep)){
+						
+						//Preenche os campos com "..." enquanto consulta webservice
+						$("#rua").val("...");
+						$("#bairro").val("...");
+						$("#cidade").val("...");
+						$("#uf").val("...");
+						
+						//consulta o webservice viacep.com.br
+						$.getJSON("https://viacep.com.br/ws/"+cep+"/json/?callback=?", function(dados){
+							
+							if(!("erro" in dados)){
+								$("#rua").val(dados.logradouro);
+								$("#bairro").val(dados.bairro);
+								$("#cidade").val(dados.localidade);
+								$("#uf").val(dados.uf);
+							} else {
+								
+								//CEP não foi encontrado
+								limpaFormularioCep();
+								alert("CEP não encontrado");
+							}
+							
+						});
+					} else {
+						//CEP é inválido
+						limpaFormularioCep();
+						alert("Formato de CEP inválido");
+					}
+				} else {
+					//cep sem valor, limpar formulário
+					alert("Favor inserir um CEP.");
+				}
+				
+			});
+			
+		});
+	</script>
 </body>
 </html>

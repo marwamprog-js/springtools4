@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import org.springframework.web.servlet.ModelAndView;
 import com.springboot.model.Pessoa;
 import com.springboot.model.Telefone;
 import com.springboot.repository.PessoaRepository;
+import com.springboot.repository.ProfissaoRepository;
 import com.springboot.repository.TelefoneRepository;
 
 @Controller
@@ -31,6 +34,12 @@ public class PessoaController {
 	
 	@Autowired
 	private TelefoneRepository telefoneRepository;
+	
+	@Autowired
+	private ReportUtil reportUtil;
+	
+	@Autowired
+	private ProfissaoRepository profissaoRepository;
 
 	
 	
@@ -41,9 +50,10 @@ public class PessoaController {
 	public ModelAndView inicio() {
 		
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");		
-		Iterable<Pessoa> pessoas = pessoaRepository.findAll();
+		Iterable<Pessoa> pessoas = pessoaRepository.findAllOrderId();
 		andView.addObject("pessoas", pessoas);
 		andView.addObject("pessoaobj", new Pessoa());
+		andView.addObject("profissoes", profissaoRepository.findAll());
 		
 		return andView;
 	}
@@ -53,15 +63,72 @@ public class PessoaController {
 	 * PESQUISAR PESSO POR NOME
 	 * */
 	@PostMapping("**/pesquisarpessoa")
-	public ModelAndView pesquisar(@RequestParam("nomepesquisa") String nomepesquisa) {
+	public ModelAndView pesquisar(@RequestParam("nomepesquisa") String nomepesquisa, @RequestParam("sexoPesquisa") String sexoPesquisa) {
+		
+		
+		List<Pessoa> pessoas = new ArrayList<Pessoa>();
+		
+		if(sexoPesquisa != "" && !sexoPesquisa.isEmpty()) {
+			pessoas = pessoaRepository.findPessoaByNameSexo(nomepesquisa, sexoPesquisa);
+		} else {
+			pessoas = pessoaRepository.findPessoaByName(nomepesquisa);
+		}
 		
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");
-		andView.addObject("pessoas", pessoaRepository.findPessoaByName(nomepesquisa));
+		andView.addObject("pessoas", pessoas);
 		andView.addObject("pessoaobj", new Pessoa());
 		
 		return andView;
 	}
 
+	
+	/*
+	 * Imprime RELATORIO PDF
+	 * */
+	@GetMapping("**/pesquisarpessoa")
+	public void imprimePdf(@RequestParam("nomepesquisa") String nomepesquisa, 
+			@RequestParam("sexoPesquisa") String sexoPesquisa, 
+			HttpServletRequest request, HttpServletResponse response) throws Exception {
+		
+		
+		List<Pessoa> pessoas = new ArrayList<Pessoa>();
+		
+		if(sexoPesquisa != null && !sexoPesquisa.isEmpty() &&
+				nomepesquisa != null && !nomepesquisa.isEmpty()) {
+			
+			pessoas = pessoaRepository.findPessoaByNameSexo(nomepesquisa, sexoPesquisa);
+			
+		} else if(nomepesquisa != null && !nomepesquisa.isEmpty()) {
+			pessoas = pessoaRepository.findPessoaByName(nomepesquisa);
+		}else if(sexoPesquisa != null && !sexoPesquisa.isEmpty()) {
+			pessoas = pessoaRepository.findPessoaBySexo(sexoPesquisa);
+		} else {
+			pessoas = (List<Pessoa>) pessoaRepository.findAll();
+		}
+		
+		
+		//Chamar o serviço que faz a geração do relatório
+		byte[] pdf = reportUtil.gerarRelatorio(pessoas, "pessoa", request.getServletContext());
+		
+		//Tamanho da resposta
+		response.setContentLengthLong(pdf.length);
+		
+		//Definir na resposta o tipo de arquivo
+		response.setContentType("application/octet-stream");
+		
+		//Cabeçalho da resposta
+		String headKey = "Content-Disposition";
+		String headValue = String.format("attachment; filename=\"%s\"", "relatorio.pdf");
+		response.setHeader(headKey, headValue);
+		
+		
+		//Finaliza a resposta para o navegador
+		response.getOutputStream().write(pdf);
+		
+		
+	}
+	
+	
 
 	/*
 	 * SALVAR
@@ -70,6 +137,7 @@ public class PessoaController {
 	public ModelAndView salvar(@Valid Pessoa pessoa, BindingResult bindingResult) {
 
 		
+		pessoa.setTelefones(telefoneRepository.getTelefones(pessoa.getId()));
 		
 		/*
 		 * Valida erros do formulário
@@ -81,6 +149,7 @@ public class PessoaController {
 			Iterable<Pessoa> pessoas = pessoaRepository.findAll();
 			modelAndView.addObject("pessoas", pessoas);
 			modelAndView.addObject("pessoaobj", pessoa); //Mantem formulário preenchido
+			modelAndView.addObject("profissoes", profissaoRepository.findAll());
 			
 			List<String> msg = new ArrayList<String>();
 			
@@ -99,6 +168,7 @@ public class PessoaController {
 		Iterable<Pessoa> pessoas = pessoaRepository.findAll();
 		andView.addObject("pessoas", pessoas);
 		andView.addObject("pessoaobj", new Pessoa());
+		andView.addObject("profissoes", profissaoRepository.findAll());
 		
 		return andView;
 
@@ -113,8 +183,11 @@ public class PessoaController {
 
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");
 
-		Optional<Pessoa> pessoa = pessoaRepository.findById(idpessoa);		
+		
+		Optional<Pessoa> pessoa = pessoaRepository.findById(idpessoa);
+		andView.addObject("pessoas", pessoaRepository.findAllOrderId());
 		andView.addObject("pessoaobj", pessoa.get());
+		andView.addObject("profissoes", profissaoRepository.findAll());
 
 		return andView;
 	}
@@ -210,6 +283,7 @@ public class PessoaController {
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");
 		andView.addObject("pessoas", pessoaRepository.findAll());
 		andView.addObject("pessoaobj", new Pessoa());
+		andView.addObject("profissoes", profissaoRepository.findAll());
 
 		return andView;
 	}
@@ -226,6 +300,7 @@ public class PessoaController {
 		Iterable<Pessoa> pessoas = pessoaRepository.findAll();
 		andView.addObject("pessoas", pessoas);
 		andView.addObject("pessoaobj", new Pessoa());
+		andView.addObject("profissoes", profissaoRepository.findAll());
 		
 		return andView;
 
