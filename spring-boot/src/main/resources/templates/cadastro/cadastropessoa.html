@@ -14,6 +14,9 @@
 <!--Import materialize.css-->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 
+<!-- Campo Data -->
+<link rel="stylesheet" href="https://unpkg.com/gijgo@1.9.13/css/gijgo.min.css">
+
 <style type="text/css">
 #btnSalvar, #btnPesquisar {
 	color: white !important;
@@ -59,7 +62,7 @@ table.striped>tbody>tr:nth-child(odd){
 
 	<div class="container">
 		<div class="row container-cadastro">
-			<form action="salvarpessoa" id="formPessoa" class="col-12" method="POST" th:object="${pessoaobj}" style="margin-bottom: 30px;">
+			<form action="salvarpessoa" id="formPessoa" class="col-12" method="POST" enctype="multipart/form-data" th:object="${pessoaobj}" style="margin-bottom: 30px;">
 				
 				<div class="row">
 					<div class="input-fiel col s2">
@@ -98,6 +101,23 @@ table.striped>tbody>tr:nth-child(odd){
 						<select class="browser-default" th:field="*{profissao}" id="profissao" name="profissao">
 							<option th:each="p : ${profissoes}" th:value="${p.id}" th:text="${p.nome}">
 						</select>	
+					</div>
+					<div class="input-fiel col s2">
+						<label for="cargo" class="active">Cargo</label> 
+						<select class="browser-default" th:field="*{cargo}" id="cargo" name="cargo">
+							<option th:each="c : ${T(com.springboot.model.Cargo).values()}" th:value="${c.valor}" th:text="${c.nome}">
+						</select>	
+					</div>
+					<div class="input-fiel col s2">
+						<label for="dataNascimento" class="active">Data de Nascimento</label> 
+						<input type="date" id="dataNascimento" name="dataNascimento" th:field="*{dataNascimento}" placeholder="Data Nasc.">	
+					</div>
+				</div>
+				 
+				<div class="row">
+					<div class="input-fiel col s12">
+						<label for="file" class="active">Currículo</label> 
+						<input type="file" class="file-field input-field" name="file" id="file"/>	
 					</div>
 				</div>
 				 
@@ -162,7 +182,7 @@ table.striped>tbody>tr:nth-child(odd){
 				<div class="row">
 					<div class="input-fiel col s6">
 						<label>Pesquisa por nome: </label>
-						<input name="nomepesquisa" placeholder="Digite o nome da pessoa" />
+						<input name="nomepesquisa" th:value="${nomepesquisa}" placeholder="Digite o nome da pessoa" />
 					</div>
 					<div class="input-fiel col s6 " style="margin-bottom: 20px;">
 						<label for="sexoPesquisa" class="active">Sexo</label> 
@@ -182,37 +202,63 @@ table.striped>tbody>tr:nth-child(odd){
 		
 		
 		
-		<table class="striped" style="margin-top: 30px;">
+		<table class="striped" style="margin-top: 30px; margin-bottom: 60px;">
 			<thead>
 				<tr>
 					<th>#</th>
 					<th>Nome</th>
 					<th>Sobrenome</th>
 					<th>Idade</th>
+					<th>Currículo</th>
 					<th>Opções</th>
 				</tr>
 			</thead>
-			<tr th:each="pessoa : ${pessoas}">
+			<tr th:each="pessoa : ${pessoas.content}">
 				<td th:text="${pessoa.id}"></td>
 				<td><a th:href="@{/telefones/{idpessoa}(idpessoa=${pessoa.id})}" ><span th:text="${pessoa.nome}"></span></a></td>
 				<td th:text="${pessoa.sobrenome}"></td>
 				<td th:text="${pessoa.idade}"></td>
+				<td>
+					<a th:if="${pessoa.curriculo != null}" th:href="@{/baixarcurriculo/{idpessoa}(idpessoa=${pessoa.id})}" class="waves-effect waves-light btn">Download</a>
+				</td>
 				<td>
 					<a th:href="@{/editarpessoa/{idpessoa}(idpessoa=${pessoa.id})}" class="waves-effect waves-light btn">Editar</a>
 					<a th:href="@{/excluirpessoa/{idpessoa}(idpessoa=${pessoa.id})}" class="waves-effect waves-light btn red">Excluir</a>
 				</td>
 			</tr>
 		</table>
+		
+		<div class="row" style="margin-bottom: 60px;">
+			<center>
+			
+				<span th:if="${pessoas.hasPrevious()}">
+					<a th:href="@{/pessoaspag(page=${pessoas.number-1}, size=${pessoas.size}, nomepesquisa=${nomepesquisa})}">Anterior</a>
+				</span>
+			
+				<th:block th:each="i : ${#numbers.sequence(0, pessoas.totalPages -1)}">
+					<a th:href="@{/pessoaspag(page=${i}, size=${pessoas.size}, nomepesquisa=${nomepesquisa})}">[[ ${i} + 1 ]]</a>
+				</th:block>
+				
+				<span th:if="${pessoas.hasNext()}">
+					<a th:href="@{/pessoaspag(page=${pessoas.number+1}, size=${pessoas.size}, nomepesquisa=${nomepesquisa})}">Próximo</a>
+				</span>
+			</center>
+		</div>
 
 	</div>
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-	<script
-  src="https://code.jquery.com/jquery-3.6.0.min.js"
-  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-  crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>  
+  <script src="https://unpkg.com/gijgo@1.9.13/js/gijgo.min.js"></script>
 	<script type="text/javascript">
 		$(document).ready(function(){
+			
+			
+			$('#dataNascimento').datepicker({
+				showOthermonths: true,
+				format: 'yyyy-mm-dd'
+			});
+			
 			
 			function limpaFormularioCep(){
 				$("#rua").val("");

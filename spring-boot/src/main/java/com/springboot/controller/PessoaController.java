@@ -1,5 +1,6 @@
 package com.springboot.controller;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -9,6 +10,11 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
@@ -18,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.springboot.model.Pessoa;
@@ -49,9 +56,8 @@ public class PessoaController {
 	@RequestMapping(method = RequestMethod.GET, value = "/cadastropessoa")
 	public ModelAndView inicio() {
 		
-		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");		
-		Iterable<Pessoa> pessoas = pessoaRepository.findAllOrderId();
-		andView.addObject("pessoas", pessoas);
+		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");	
+		andView.addObject("pessoas", pessoaRepository.findAll(PageRequest.of(0, 5, Sort.by("nome"))));
 		andView.addObject("pessoaobj", new Pessoa());
 		andView.addObject("profissoes", profissaoRepository.findAll());
 		
@@ -59,25 +65,46 @@ public class PessoaController {
 	}
 	
 	
+	
 	/*
-	 * PESQUISAR PESSO POR NOME
+	 * Método de PAGINAÇÃO
+	 * */
+	@GetMapping("/pessoaspag")
+	public ModelAndView carregaPessoaPorPaginacao(@PageableDefault(size = 5) Pageable pageable, ModelAndView model,
+			@RequestParam("nomepesquisa") String nomepesquisa) {
+		
+		Page<Pessoa> pagePessoa = pessoaRepository.findPessoaByNamePage(nomepesquisa, pageable);
+		model.addObject("pessoas", pagePessoa);
+		model.addObject("pessoaobj", new Pessoa());
+		model.addObject("nomepesquisa", nomepesquisa);
+		
+		model.setViewName("cadastro/cadastropessoa");
+		
+		return model;
+	}
+	
+	
+	
+	/*
+	 * PESQUISAR PESSOA POR NOME
 	 * */
 	@PostMapping("**/pesquisarpessoa")
-	public ModelAndView pesquisar(@RequestParam("nomepesquisa") String nomepesquisa, @RequestParam("sexoPesquisa") String sexoPesquisa) {
+	public ModelAndView pesquisar(@RequestParam("nomepesquisa") String nomepesquisa, @RequestParam("sexoPesquisa") String sexoPesquisa, 
+			@PageableDefault(size = 5, sort = {"nome"}) Pageable pageble) {
 		
 		
-		List<Pessoa> pessoas = new ArrayList<Pessoa>();
+		Page<Pessoa> pessoas = null;
 		
 		if(sexoPesquisa != "" && !sexoPesquisa.isEmpty()) {
-			pessoas = pessoaRepository.findPessoaByNameSexo(nomepesquisa, sexoPesquisa);
+			pessoas = pessoaRepository.findPessoaBySexoNomePage(nomepesquisa, sexoPesquisa, pageble);
 		} else {
-			pessoas = pessoaRepository.findPessoaByName(nomepesquisa);
+			pessoas = pessoaRepository.findPessoaByNamePage(nomepesquisa, pageble);
 		}
 		
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");
 		andView.addObject("pessoas", pessoas);
 		andView.addObject("pessoaobj", new Pessoa());
-		
+		andView.addObject("nomepesquisa", nomepesquisa);
 		return andView;
 	}
 
@@ -129,12 +156,41 @@ public class PessoaController {
 	}
 	
 	
+	/*
+	 * Download Curriculo
+	 * */
+	@GetMapping("**/baixarcurriculo/{idpessoa}")
+	public void baixarCurriculo(@PathVariable("idpessoa") Long idpessoa, HttpServletResponse response) throws IOException {
+		
+		//Consultar objeto pessoa no banco de dados
+		Pessoa pessoa = pessoaRepository.findById(idpessoa).get();
+		
+		if(pessoa.getCurriculo() != null) {
+			
+			//Setar tamanho da resposta
+			response.setContentLength(pessoa.getCurriculo().length);
+			
+			//Tipo do arquivo para download ou pode ser generica: application/octet-stream
+			response.setContentType(pessoa.getTipoArquivo());
+			
+			//Define o cabecalho da resposta
+			String headerKey = "content-Disposition";
+			String headerValue = String.format("attachment; filename=\"%s\"", pessoa.getNomeArquivo());
+			response.setHeader(headerKey, headerValue);
+			
+			//finaliza a resposta passando o arquivo
+			response.getOutputStream().write(pessoa.getCurriculo());			
+			
+		}
+		
+	}
+	
 
 	/*
 	 * SALVAR
 	 * */
-	@RequestMapping(method = RequestMethod.POST, value = "**/salvarpessoa") //** -> ignora tudo que vem antes
-	public ModelAndView salvar(@Valid Pessoa pessoa, BindingResult bindingResult) {
+	@RequestMapping(method = RequestMethod.POST, value = "**/salvarpessoa", consumes = {"multipart/form-data"}) //** -> ignora tudo que vem antes
+	public ModelAndView salvar(@Valid Pessoa pessoa, BindingResult bindingResult, final MultipartFile file) throws IOException {
 
 		
 		pessoa.setTelefones(telefoneRepository.getTelefones(pessoa.getId()));
@@ -146,8 +202,8 @@ public class PessoaController {
 		if(bindingResult.hasErrors()) {
 			
 			ModelAndView modelAndView = new ModelAndView("cadastro/cadastropessoa");
-			Iterable<Pessoa> pessoas = pessoaRepository.findAll();
-			modelAndView.addObject("pessoas", pessoas);
+			
+			modelAndView.addObject("pessoas", pessoaRepository.findAll(PageRequest.of(0, 5, Sort.by("nome"))));
 			modelAndView.addObject("pessoaobj", pessoa); //Mantem formulário preenchido
 			modelAndView.addObject("profissoes", profissaoRepository.findAll());
 			
@@ -162,11 +218,31 @@ public class PessoaController {
 			return modelAndView;
 		}
 		
+		
+		
+		//Cadastrando curriculo
+		if(file.getSize() > 0) {
+			pessoa.setCurriculo(file.getBytes());
+			pessoa.setTipoArquivo(file.getContentType());
+			pessoa.setNomeArquivo(file.getOriginalFilename());
+		} else {
+			
+			//Caso esteja editando
+			if(pessoa.getId() != null && pessoa.getId() > 0) {
+				Pessoa pessoaTempo = pessoaRepository.findById(pessoa.getId()).get();
+				pessoa.setCurriculo(pessoaTempo.getCurriculo());
+				pessoa.setTipoArquivo(pessoaTempo.getTipoArquivo());
+				pessoa.setNomeArquivo(pessoaTempo.getNomeArquivo());
+			}
+		}
+		
+		
+		
 		pessoaRepository.save(pessoa);
 
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");
-		Iterable<Pessoa> pessoas = pessoaRepository.findAll();
-		andView.addObject("pessoas", pessoas);
+		
+		andView.addObject("pessoas", pessoaRepository.findAll(PageRequest.of(0, 5, Sort.by("nome"))));
 		andView.addObject("pessoaobj", new Pessoa());
 		andView.addObject("profissoes", profissaoRepository.findAll());
 		
@@ -185,7 +261,7 @@ public class PessoaController {
 
 		
 		Optional<Pessoa> pessoa = pessoaRepository.findById(idpessoa);
-		andView.addObject("pessoas", pessoaRepository.findAllOrderId());
+		andView.addObject("pessoas", pessoaRepository.findAll(PageRequest.of(0, 5, Sort.by("nome"))));
 		andView.addObject("pessoaobj", pessoa.get());
 		andView.addObject("profissoes", profissaoRepository.findAll());
 
@@ -281,7 +357,7 @@ public class PessoaController {
 		pessoaRepository.deleteById(idpessoa);
 
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");
-		andView.addObject("pessoas", pessoaRepository.findAll());
+		andView.addObject("pessoas", pessoaRepository.findAll(PageRequest.of(0, 5, Sort.by("nome"))));
 		andView.addObject("pessoaobj", new Pessoa());
 		andView.addObject("profissoes", profissaoRepository.findAll());
 
@@ -297,8 +373,7 @@ public class PessoaController {
 
 		ModelAndView andView = new ModelAndView("cadastro/cadastropessoa");
 
-		Iterable<Pessoa> pessoas = pessoaRepository.findAll();
-		andView.addObject("pessoas", pessoas);
+		andView.addObject("pessoas", pessoaRepository.findAll(PageRequest.of(0, 5, Sort.by("nome"))));
 		andView.addObject("pessoaobj", new Pessoa());
 		andView.addObject("profissoes", profissaoRepository.findAll());
 		
